@@ -1,0 +1,115 @@
+{
+	"name": "Language Switcher",
+	"namespace": "MCRI\\LanguageSwitcher",
+	"authors": [
+		{
+			"name": "Luke Stevens",
+			"email": "luke.stevens@mcri.edu.au",
+			"institution": "Murdoch Children's Research Institute"
+		}
+	],
+	"description": "Configure multiple languages for your project - both for your data entry form and survey variables, and for default REDCap text elements.",
+    "framework-version": 6,
+    "compatibility": {
+        "redcap-version-min": "10.4.1"
+    },
+	"permissions": [
+        "redcap_every_page_before_render",
+        "redcap_every_page_top"
+    ],
+    "no-auth-pages": [
+        "survey_lang_ajax"
+    ],
+    "enable-every-page-hooks-on-system-pages": false,
+    "project-settings": [
+        {
+            "name": "Language label for main project language (this project)<br>Displayed to users, e.g. English",
+            "key": "language-default",
+            "required": true,
+            "type": "text"
+        },
+        {
+            "key": "language-config",
+            "name": "Language Configuration",
+            "required": false,
+            "type": "sub_settings",
+            "repeatable": true,
+            "sub_settings": [
+                {
+                    "name": "Language label<br>Displayed to users",
+                    "key": "language-label",
+                    "required": true,
+                    "repeatable": false,
+                    "type": "text"
+                },
+                {
+                    "name": "Project containing text for this language<br><ul><li>Data dictionary/form design</li><li>Language file (via administrator \"Edit project settings\") for non-form text</li></ul>",
+                    "key": "language-project",
+                    "required": true,
+                    "repeatable": false,
+                    "type": "project-id"
+                },
+                {
+                    "name": "DAGs using this language by default (users and survey respondents)<br>Optional",
+                    "key": "language-dag",
+                    "required": false,
+                    "repeatable": true,
+                    "type": "dag-list"
+                },
+                {
+                    "name": "Instrument Names & Event Names<br>Do not alter instrument and event names in the language projects because that will result in altered event references and form status field names.<br><strong>Nb: you do NOT need to set up events and designate forms in the language project.</strong>",
+                    "key": "info-form-event",
+                    "type": "descriptive"
+                },
+                {
+                    "key": "language-forms",
+                    "name": "Alternative instrument naming",
+                    "required": false,
+                    "type": "sub_settings",
+                    "repeatable": true,
+                    "sub_settings": [
+                        {
+                            "name": "Instrument in main project",
+                            "key": "language-form-main",
+                            "required": false,
+                            "repeatable": false,
+                            "type": "form-list"
+                        },
+                        {
+                            "name": "Alternative instrument name in language",
+                            "key": "language-form-lang",
+                            "required": false,
+                            "repeatable": false,
+                            "type": "text"
+                        }
+                    ]
+                },
+                {
+                    "key": "language-events",
+                    "name": "Alternative event naming<br><strong>Nb: you do NOT need to set up events and designate forms in the language project.</strong>",
+                    "required": false,
+                    "type": "sub_settings",
+                    "repeatable": true,
+                    "sub_settings": [
+                        {
+                            "name": "Event in main project",
+                            "key": "language-event-main",
+                            "required": false,
+                            "repeatable": false,
+                            "type": "event-list"
+                        },
+                        {
+                            "name": "Alternative event name in language",
+                            "key": "language-event-lang",
+                            "required": false,
+                            "repeatable": false,
+                            "type": "text"
+                        }
+                    ]
+                }
+            ]
+        }
+    ],
+    "system-settings": [
+    ]
+}
