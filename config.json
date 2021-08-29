@@ -1,14 +1,14 @@
 {
-	"name": "Language Switcher",
-	"namespace": "MCRI\\LanguageSwitcher",
-	"authors": [
-		{
-			"name": "Luke Stevens",
-			"email": "luke.stevens@mcri.edu.au",
-			"institution": "Murdoch Children's Research Institute"
-		}
-	],
-	"description": "Configure multiple languages for your project - both for your data entry form and survey variables, and for default REDCap text elements.",
+    "name": "Language Switcher",
+    "namespace": "MCRI\\LanguageSwitcher",
+    "authors": [
+        {
+            "name": "Luke Stevens",
+            "email": "luke.stevens@mcri.edu.au",
+            "institution": "Murdoch Children's Research Institute"
+        }
+    ],
+    "description": "Enable multilingual capability for projects. Switch between multiple languages and view all project pages, not just data entry and survey forms, in that language.",
     "framework-version": 6,
     "compatibility": {
         "redcap-version-min": "10.4.1"
