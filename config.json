@@ -15,7 +15,8 @@
     },
 	"permissions": [
         "redcap_every_page_before_render",
-        "redcap_every_page_top"
+        "redcap_every_page_top",
+        "redcap_save_record"
     ],
     "no-auth-pages": [
         "survey_lang_ajax"
@@ -86,7 +87,7 @@
                 },
                 {
                     "key": "language-events",
-                    "name": "Alternative event naming<br><strong>Nb: you do NOT need to set up events and designate forms in the language project.</strong>",
+                    "name": "Alternative event naming",
                     "required": false,
                     "type": "sub_settings",
                     "repeatable": true,
@@ -111,5 +112,12 @@
         }
     ],
     "system-settings": [
+        {
+            "name": "Designer instruction (optional)<br>Override the default \"Design for the primary language on this page. Access the additional projects to configure fields for other languages.\" text.",
+            "key": "design-instruction",
+            "required": false,
+            "repeatable": false,
+            "type": "text"
+        }
     ]
 }

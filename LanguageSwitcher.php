@@ -9,10 +9,13 @@ namespace MCRI\LanguageSwitcher;
 use ExternalModules\ExternalModules;
 
 class LanguageSwitcher extends \ExternalModules\AbstractExternalModule {
+    protected const DESIGN_INSTRUCTION = 'Design for the primary language on this page. Configure field labels etc. in other languages in the project for each language.';
     protected const SURVEY_COOKIE_NAME = 'LanguageSwitcher';
+    protected const ACTION_TAG_REGEXP = '/@LANGUAGE-?SWITCHER/';
     protected $userlangproj = null;
     protected $record = null;
     protected static $SurveyConfigFields = array('title','instructions','offline_instructions','acknowledgement','stop_action_acknowledgement','response_limit_custom_text');
+    protected static $DesignLinkPages = array('Design/online_designer.php','Design/data_dictionary_upload.php','Design/data_dictionary_codebook.php');
     
     /**
      * getUserLanguage()
@@ -73,7 +76,7 @@ class LanguageSwitcher extends \ExternalModules\AbstractExternalModule {
         global $lang, $Proj;
 
         $this->userlangproj = $this->getUserLanguage();
-        if (empty($this->userlangproj) || $this->userlangproj==$project_id) return; // using default language 
+        if (empty($this->userlangproj)) $this->userlangproj = $project_id;
 
         // is saved user language project still valid for this project
         $settings = $this->getSubSettings('language-config');
@@ -89,7 +92,15 @@ class LanguageSwitcher extends \ExternalModules\AbstractExternalModule {
                 break;
             }
         }
-        if (!$found) return;
+        if (!$found) $this->userlangproj = $project_id;
+
+        // is this a save of a form/survey page containing a field with @LANGUAGE_SWITCHER?
+        if ($_SERVER['REQUEST_METHOD']==='POST' && 
+            (PAGE==='surveys/index.php' || PAGE==='DataEntry/index.php')) {
+            $this->addLangToPOST($this->userlangproj);
+        }
+
+        if ($this->userlangproj==$project_id) return; // using primary language - no overriding of elements required
 
         // read redcap_project for which lang file to use
         $r = self::query('select project_language from redcap_projects where project_id = ?', $this->userlangproj);
@@ -101,36 +112,36 @@ class LanguageSwitcher extends \ExternalModules\AbstractExternalModule {
         // override specification in current project from language project
         $langProj = new \Project($this->userlangproj);
 
-        // form names: except on Online Designer page (where they're edited)
+        
+        // Do not adjust field/event metadata for Design pages primary project (only use alternative language file)
+        if (0===strpos(PAGE, "Design/")) return;
+
+        // form names
         $langFormNames = array();
-        if (PAGE!=="Design/online_designer.php" && PAGE!=="Design/designate_forms.php") {
-            foreach ($langForms as $lf) {
-                $langFormNames[$lf['language-form-main']] = $lf['language-form-lang'];
-                $Proj->forms[$lf['language-form-main']]['menu'] = $lf['language-form-lang'];
-            }
-            if (array_key_exists($Proj->firstForm, $langFormNames)) {
-                $Proj->firstFormMenu = $langFormNames[$Proj->firstForm];
-            }
+        foreach ($langForms as $lf) {
+            $langFormNames[$lf['language-form-main']] = $lf['language-form-lang'];
+            $Proj->forms[$lf['language-form-main']]['menu'] = $lf['language-form-lang'];
+        }
+        if (array_key_exists($Proj->firstForm, $langFormNames)) {
+            $Proj->firstFormMenu = $langFormNames[$Proj->firstForm];
         }
 
-        // event names: except on Define My Events / Designate page (where they're configured)
+        // event names
         $langEventNames = array();
-        if (PAGE!=="Design/define_events.php" && PAGE!=="Design/designate_forms.php") {
-            foreach ($langEvents as $le) {
-                $langEventNames[$le['language-event-main']] = $le['language-event-lang'];
-                $Proj->eventInfo[$le['language-event-main']]['name'] = $le['language-event-lang'];
-                $Proj->eventInfo[$le['language-event-main']]['name_ext'] = $le['language-event-lang'];
-            }
-            foreach ($Proj->events as $arm_num => $arm) {
-                foreach(array_keys($arm['events']) as $evtId) {
-                    if (array_key_exists($evtId, $langEventNames)) {
-                        $Proj->events[$arm_num]['events'][$evtId]['descrip'] = $langEventNames[$evtId];
-                    }
+        foreach ($langEvents as $le) {
+            $langEventNames[$le['language-event-main']] = $le['language-event-lang'];
+            $Proj->eventInfo[$le['language-event-main']]['name'] = $le['language-event-lang'];
+            $Proj->eventInfo[$le['language-event-main']]['name_ext'] = $le['language-event-lang'];
+        }
+        foreach ($Proj->events as $arm_num => $arm) {
+            foreach(array_keys($arm['events']) as $evtId) {
+                if (array_key_exists($evtId, $langEventNames)) {
+                    $Proj->events[$arm_num]['events'][$evtId]['descrip'] = $langEventNames[$evtId];
                 }
             }
-            if (array_key_exists($Proj->firstEventId, $langEventNames)) {
-                $Proj->firstEventName = $langEventNames[$Proj->firstEventId];
-            }
+        }
+        if (array_key_exists($Proj->firstEventId, $langEventNames)) {
+            $Proj->firstEventName = $langEventNames[$Proj->firstEventId];
         }
 
         // variable metadata
@@ -206,6 +217,9 @@ class LanguageSwitcher extends \ExternalModules\AbstractExternalModule {
             $languages[$lang['language-project']] = $lang['language-label'];
         }
 
+        $designContent = $this->makeDesignContent($languages);
+        $showDesignContent = ($designContent==='')?0:1;
+
         $this->initializeJavascriptModuleObject();
         $jsObjectName = $this->framework->getJavascriptModuleObjectName();
 
@@ -216,15 +230,22 @@ class LanguageSwitcher extends \ExternalModules\AbstractExternalModule {
 
         if (PAGE==="surveys/index.php") {
             $setLangPath = $this->getUrl('survey_lang_ajax.php', true);
-            $switcherStyle = "position:fixed; top:0; left:0; z-index:1111; background-color:#fff; p-2; display:inline-block; width:auto; padding:2px;";
+            $switcherStyle = "display:none; margin:10px 0 0 10px;";
+
+            // do not show switcher option if past page 1 on public survey link because page reload restarts survey
+            global $public_survey;
+            $showLangSwitcher = ($public_survey && $_GET['__page__'] > 1) ? 0 : 1; 
         } else {
             $setLangPath = $this->getUrl('user_lang_ajax.php');
             $switcherStyle = "display:none;";
+            $showLangSwitcher = 1;
         }
         ?>
         <div id="LanguageSwitcher" class=""><i class="fas fa-language fs16" style="vertical-align:middle;"></i><?=$langSelect?></div>
+        <div id="LanguageSwitcherDesign" class="blue"><?=$designContent?></div>
         <style type="text/css">
             #LanguageSwitcher { <?=$switcherStyle?> }
+            #LanguageSwitcherDesign { display: none; clear: both; max-width: 800px; margin: 1em 0; }
         </style>
         <script type="text/javascript">
             <?=$jsObjectName?>.langSelect = function(sel) {
@@ -253,8 +274,15 @@ class LanguageSwitcher extends \ExternalModules\AbstractExternalModule {
                 simpleDialog(msg);
             }
             $(document).ready(function() {
-                if (page!=='surveys/index.php') {
-                    $('#LanguageSwitcher').appendTo('#menu-div > .menubox:first').show();
+                if (<?=$showLangSwitcher?>==1) {
+                    if (page==='surveys/index.php') {
+                        $('#LanguageSwitcher').prependTo('#surveytitlelogo').show();
+                    } else {
+                        $('#LanguageSwitcher').appendTo('#menu-div > .menubox:first').show();
+                    }
+                }
+                if ((<?=$showDesignContent?>)) {
+                    $('#LanguageSwitcherDesign').insertAfter('#sub-nav').show();
                 }
             });
         </script>
@@ -298,5 +326,40 @@ class LanguageSwitcher extends \ExternalModules\AbstractExternalModule {
         }
         header("Content-Type: application/json");
         echo json_encode($rtn);
+    }
+
+    /**
+     * addLangToPOST($langproj)
+     * Add selected language of user/survey respondent to any field tagged with @LANGUAGE_SWITCHER
+     */
+    protected function addLangToPOST($langproj) {
+        global $Proj;
+        foreach (array_keys($_POST) as $postField) {
+            if (!array_key_exists($postField, $Proj->metadata)) continue;
+            if (preg_match(static::ACTION_TAG_REGEXP, $Proj->metadata[$postField]['misc'])) {
+                $_POST[$postField] = $langproj;
+            }
+        }
+    }
+
+    /**
+     * makeDesignContent($languages)
+     * On design pages (OD/DD/Cb), give links to projects where alternative language elements are specified.
+     */
+    protected function makeDesignContent($languages) {
+        if (!in_array(PAGE, static::$DesignLinkPages)) return '';
+        $designContent = '<div class="fs16"><i class="fas fa-language mr-1 mb-1" style="vertical-align:middle;"></i>Language Switcher<i class="fas fa-cube ml-1"></i></div><div><?=$designContent?></div>';
+        $instruction = $this->getSystemSetting('design--instruction');
+        $designContent .= ($instruction=='') ? static::DESIGN_INSTRUCTION : $instruction;
+
+        $designContent .= '<div class="text-center my-1">';
+        foreach ($languages as $langProjId => $langLabel) {
+            if (PROJECT_ID==$langProjId) continue;
+            $href = str_replace('pid='.PROJECT_ID, 'pid='.$langProjId, $_SERVER["REQUEST_URI"]);
+            $designContent .= "<a class='btn btn-primaryrc btn-sm mx-2' style='color:white;' target='_blank' href='$href'>$langLabel<i class='fas fa-external-link-alt ml-1'></i></a>";
+        }
+        $designContent .= '</div>';
+
+        return $designContent;
     }
 }
