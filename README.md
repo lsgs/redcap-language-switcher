@@ -18,6 +18,10 @@ Neither dictionary nor language file need be complete. The additional language p
 * Have just one form (a participant-facing survey, for example) be translated.
 * Alter just certain language elements like validation check failure messages or button labels ("Randomization" for "US English"; "Randomisation" for Australian English).
 
+**Note**
+* All data entry is done in the primary project. The additional projects are used only for language element configuration, and field and survey metadata changes and should never contain data.
+* Because the page is reloaded when changing language, the switching option is present only on the first page of *public* surveys.
+
 ### Field Metadata
 
 Field metadata can be overridden by language-specific versions by including corresponding variables in the language project.
