@@ -30,7 +30,7 @@ class LanguageSwitcher extends \ExternalModules\AbstractExternalModule {
         $langproj = $this->getDAGLanguage();
         if (PAGE==='surveys/index.php') {
             if(isset($_COOKIE[static::SURVEY_COOKIE_NAME])) {
-                $langproj = $_COOKIE[static::SURVEY_COOKIE_NAME];
+                $langproj = \htmlspecialchars($_COOKIE[static::SURVEY_COOKIE_NAME]);
             }
         } else {
             $userPref = $this->getUserSetting('UserLangProj');
@@ -63,7 +63,7 @@ class LanguageSwitcher extends \ExternalModules\AbstractExternalModule {
                 $dag = $row['value'];
             }
         } else {
-            $this->record = (isset($_GET['id'])) ? $_GET['id'] : '';
+            $this->record = (isset($_GET['id'])) ? \htmlspecialchars($_GET['id']) : '';
             $dag = $user_rights['group_id'];
         }
 
@@ -234,7 +234,7 @@ class LanguageSwitcher extends \ExternalModules\AbstractExternalModule {
 
             // do not show switcher option if past page 1 on public survey link because page reload restarts survey
             global $public_survey;
-            $showLangSwitcher = ($public_survey && $_GET['__page__'] > 1) ? 0 : 1; 
+            $showLangSwitcher = ($public_survey && \htmlspecialchars($_GET['__page__']) > 1) ? 0 : 1; 
         } else {
             $setLangPath = $this->getUrl('user_lang_ajax.php');
             $switcherStyle = "display:none;";
@@ -290,8 +290,8 @@ class LanguageSwitcher extends \ExternalModules\AbstractExternalModule {
 	}
 
     public function setUserLanguage($project_id, $isSurvey=false) {
-        $userLangProj = $_POST['UserLangProj'];
-        $record = $_POST['record'];
+        $userLangProj = \htmlspecialchars($_POST['UserLangProj']);
+        $record = \htmlspecialchars($_POST['record']);
         try {
             $defaultLangName = $this->getProjectSetting('language-default');
             $languages = array($project_id => $defaultLangName);
