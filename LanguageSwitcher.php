@@ -307,7 +307,7 @@ class LanguageSwitcher extends \ExternalModules\AbstractExternalModule {
         
             if ($isSurvey) {
                 // survey - set cookie
-                setcookie(static::SURVEY_COOKIE_NAME, $userLangProj, time()+60*60*24*30, '/'); // remember for 30 days
+                setcookie(static::SURVEY_COOKIE_NAME, intval($userLangProj), time()+60*60*24*30, '/'); // remember for 30 days
                 if (empty($record)) {
                     $logMsg = $languages[$userLangProj].' selected (public survey)';
                 } else {
