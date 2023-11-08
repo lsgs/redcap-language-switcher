@@ -30,7 +30,7 @@ class LanguageSwitcher extends \ExternalModules\AbstractExternalModule {
         $langproj = $this->getDAGLanguage();
         if (PAGE==='surveys/index.php') {
             if(isset($_COOKIE[static::SURVEY_COOKIE_NAME])) {
-                $langproj = \htmlspecialchars($_COOKIE[static::SURVEY_COOKIE_NAME], ENT_QUOTES);
+                $langproj = $this->escape($_COOKIE[static::SURVEY_COOKIE_NAME]);
             }
         } else {
             $userPref = $this->getUserSetting('UserLangProj');
@@ -51,19 +51,20 @@ class LanguageSwitcher extends \ExternalModules\AbstractExternalModule {
         }
 
         if (PAGE==='surveys/index.php') {
+            $redcap_data = method_exists('\REDCap', 'getDataTable') ? \REDCap::getDataTable($this->getProjectId()) : "redcap_data"; 
             $sql = "select d.record, value
                     from redcap_surveys_participants p
                     inner join redcap_surveys_response r on p.participant_id=r.participant_id
                     inner join redcap_surveys s on p.survey_id=s.survey_id
-                    inner join redcap_data d on s.project_id=d.project_id and r.record=d.record
+                    inner join $redcap_data d on s.project_id=d.project_id and r.record=d.record
                     where p.participant_id=? and field_name='__GROUPID__' limit 1";
             $q = $this->query($sql, [$participant_id]);
             while ($row = $q->fetch_assoc()) {
-                $this->record = $row['record'];
+                $this->record = $this->escape($row['record']);
                 $dag = $row['value'];
             }
         } else {
-            $this->record = (isset($_GET['id'])) ? \htmlspecialchars($_GET['id'], ENT_QUOTES) : '';
+            $this->record = (isset($_GET['id'])) ? $this->escape($_GET['id']) : '';
             $dag = $user_rights['group_id'];
         }
 
@@ -194,6 +195,7 @@ class LanguageSwitcher extends \ExternalModules\AbstractExternalModule {
                 }
                 if ($matched) {
                     foreach (static::$SurveyConfigFields as $surveyParam) {
+                        $surveyParam = $this->escape($surveyParam);
                         global $$surveyParam;
                         $$surveyParam = $Proj->surveys[$primarySurveyId][$surveyParam] = $langProj->surveys[$langSurveyId][$surveyParam];
                     }
@@ -234,7 +236,7 @@ class LanguageSwitcher extends \ExternalModules\AbstractExternalModule {
 
             // do not show switcher option if past page 1 on public survey link because page reload restarts survey
             global $public_survey;
-            $showLangSwitcher = ($public_survey && \htmlspecialchars($_GET['__page__'], ENT_QUOTES) > 1) ? 0 : 1; 
+            $showLangSwitcher = ($public_survey && $this->escape($_GET['__page__']) > 1) ? 0 : 1; 
         } else {
             $setLangPath = $this->getUrl('user_lang_ajax.php');
             $switcherStyle = "display:none;";
@@ -290,8 +292,8 @@ class LanguageSwitcher extends \ExternalModules\AbstractExternalModule {
 	}
 
     public function setUserLanguage($project_id, $isSurvey=false) {
-        $userLangProj = \htmlspecialchars($_POST['UserLangProj'], ENT_QUOTES);
-        $record = \htmlspecialchars($_POST['record'], ENT_QUOTES);
+        $userLangProj = $this->escape($_POST['UserLangProj']);
+        $record = $this->escape($_POST['record']);
         try {
             $defaultLangName = $this->getProjectSetting('language-default');
             $languages = array($project_id => $defaultLangName);
@@ -301,13 +303,13 @@ class LanguageSwitcher extends \ExternalModules\AbstractExternalModule {
             }
         
             if (!array_key_exists($userLangProj, $languages)) {
-                throw new \Exception("Language project id $userLangProject is not valid.");
+                throw new \Exception("Language project id $userLangProj is not valid.");
             }
         
         
             if ($isSurvey) {
                 // survey - set cookie
-                setcookie(static::SURVEY_COOKIE_NAME, intval($userLangProj), time()+60*60*24*30, '/'); // remember for 30 days
+                setcookie(static::SURVEY_COOKIE_NAME, $userLangProj, time()+60*60*24*30, '/'); // remember for 30 days
                 if (empty($record)) {
                     $logMsg = $languages[$userLangProj].' selected (public survey)';
                 } else {
@@ -322,7 +324,7 @@ class LanguageSwitcher extends \ExternalModules\AbstractExternalModule {
             $rtn = $userLangProj;
         } catch (\Exception $ex) {
             $rtn = "Language Switcher failed to set user language (project=$userLangProj)\n".$ex->getMessage();
-            \REDCap::logEvent('Language Switcher', $rtn, '', $record, $event_id);
+            \REDCap::logEvent('Language Switcher', $rtn, '', $record);
         }
         header("Content-Type: application/json");
         echo json_encode($rtn);

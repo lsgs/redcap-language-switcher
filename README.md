@@ -1,5 +1,13 @@
 # Language Switcher
 
+Luke Stevens, Murdoch Children's Research Institute https://www.mcri.edu.au
+
+[https://github.com/lsgs/redcap-language-switcher](https://github.com/lsgs/redcap-language-switcher)
+********************************************************************************
+
+## Obsolete
+This external module is effectively made obsolete by REDCap's built-in \"Multi-language Management\" feature from v12.0.0.
+
 ## Description
 
 This module enables support for multiple languages within a REDCap project. You can switch between any number of configured languages on demand to view different elements in the selected language:

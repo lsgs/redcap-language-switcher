@@ -8,20 +8,11 @@
             "institution": "Murdoch Children's Research Institute"
         }
     ],
-    "description": "Enable multilingual capability for projects. Switch between multiple languages and view all project pages, not just data entry and survey forms, in that language.",
-    "framework-version": 6,
-    "compatibility": {
-        "redcap-version-min": "10.4.1"
-    },
-	"permissions": [
-        "redcap_every_page_before_render",
-        "redcap_every_page_top",
-        "redcap_save_record"
-    ],
+    "description": "Enable multilingual capability for projects. Switch between multiple languages and view all project pages, not just data entry and survey forms, in that language.<p>Note: this external module is effectively made obsolete by REDCap's built-in \"Multi-language Management\" feature from v12.0.0.</p>",
+    "framework-version": 14,
     "no-auth-pages": [
         "survey_lang_ajax"
     ],
-    "enable-every-page-hooks-on-system-pages": false,
     "project-settings": [
         {
             "name": "Language label for main project language (this project)<br>Displayed to users, e.g. English",
